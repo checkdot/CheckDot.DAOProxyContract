@@ -1,0 +1,6 @@
+.secret
+package-lock.json
+node_modules/
+build/
+secret.js
+.DS_Store
