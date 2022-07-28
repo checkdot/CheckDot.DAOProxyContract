@@ -1,8 +1,7 @@
 pragma solidity ^0.8.9;
 
 import "../utils/ProxyStorage.sol";
-
-import "@openzeppelin/contracts/utils/Counters.sol";
+import "../utils/Counters.sol";
 
 contract ProductsV1 is ProxyStorage {
     using Counters for Counters.Counter;
