@@ -1,6 +1,7 @@
 const truffleAssert = require('truffle-assertions');
 const contractTruffle = require('truffle-contract');
 const { toWei, toBN } = web3.utils;
+const timeHelper = require('./utils/index');
 
 /* CheckDotToken Provider */
 const proxyArtifact = require('../build/contracts/Proxy.json');
@@ -12,8 +13,6 @@ ProxyContract.setProvider(web3.currentProvider);
 const ProductsContractV1 = artifacts.require('ProductsV1');
 const ProductsContractV2 = artifacts.require('ProductsV2');
 
-const { upgradeProxy } = require('@openzeppelin/truffle-upgrades');
-
 
 contract('CheckDotInsuranceProtocolContract', async (accounts) => {
   let proxy;
@@ -21,7 +20,11 @@ contract('CheckDotInsuranceProtocolContract', async (accounts) => {
   let owner;
   let tester;
 
+  let snapShotId;
+
   before(async () => {
+    snapShotId = await timeHelper.takeSnapshot();
+
     const functionalContractV1 = await ProductsContractV1.new();
     const functionalContractV2 = await ProductsContractV2.new();
 
@@ -38,20 +41,69 @@ contract('CheckDotInsuranceProtocolContract', async (accounts) => {
     console.log('Tester:', tester);
   });
 
+  after(async () => {
+    await timeHelper.revertToSnapShot(snapShotId);
+  });
+
   it('getImplementation should be zero address', async () => {
     const implementation = await proxy.getImplementation();
     
     assert.equal(implementation, "0x0000000000000000000000000000000000000000", 'Should be zero');
   });
 
+  it('getOwner should be owner address', async () => {
+    const testOwner = await proxy.getOwner();
+    
+    assert.equal(testOwner, owner, `Should be ${owner}`);
+  });
+
+  it('getGovernance should be CDT address', async () => {
+    const addr = await proxy.getGovernance();
+    
+    assert.equal(addr, "0x79deC2de93f9B16DD12Bc6277b33b0c81f4D74C7", `Should be ${owner}`);
+  });
+
+  it('upgrade should be throw EXPIRED', async () => {
+    try {
+      await proxy.upgrade("0x0000000000000000000000000000000000000000", "0", "0", { from: accounts[0] });
+    }
+    catch (err) {
+        assert.include(err.message, "EXPIRED", "The error message should contain 'EXPIRED'");
+    }
+  });
+
   it('getImplementation should be equals ProductsContractV1', async () => {
     const functionalContractV1 = await ProductsContractV1.new();
-
-    await proxy.upgrade(functionalContractV1.address, "0", "0", { from: accounts[0] });
-
-    const implementation = await proxy.getImplementation();
     
-    assert.equal(implementation, functionalContractV1.address, 'Should be equals');
+    const currentBlockTimeStamp = ((await web3.eth.getBlock("latest")).timestamp) + 10;
+    const startUTC = `${currentBlockTimeStamp.toFixed(0)}`;
+    const endUTC = `${(currentBlockTimeStamp + 86400).toFixed(0)}`;
+
+    await proxy.upgrade(functionalContractV1.address, startUTC, endUTC, { from: owner });
+
+    const lastUpgrade = await proxy.getLastUpgrade({ from: owner });
+
+    assert.equal(lastUpgrade.submitedNewFunctionalAddress, functionalContractV1.address, `submitedNewFunctionalAddress should be equals to ${functionalContractV1.address}`);
+    assert.equal(lastUpgrade.utcStartVote, startUTC, `utcStartVote should be equals to ${startUTC}`);
+    assert.equal(lastUpgrade.utcEndVote, endUTC, `utcEndVote should be equals to ${endUTC}`);
+    assert.equal(lastUpgrade.totalApproved, 0, `totalApproved should be equals to 0`);
+    assert.equal(lastUpgrade.totalUnapproved, 0, `totalUnapproved should be equals to 0`);
+    assert.equal(lastUpgrade.isFinished, false, `isFinished should be equals to false`);
+
+    await timeHelper.advanceTime(3600); // add one hour
+    await timeHelper.advanceBlock(); // add one block
+    
+    await proxy.voteUpgrade(true, { from: owner });
+    await proxy.voteUpgrade(true, { from: tester });
+
+    await timeHelper.advanceTime(86400); // add one day
+    await timeHelper.advanceBlock(); // add one block
+
+    await proxy.voteUpgradeCounting({ from: owner });
+    
+    const implementation = await proxy.getImplementation();
+
+    assert.equal(implementation, functionalContractV1.address, `Should be equals to ${functionalContractV1.address}`);
 
     proxyFunctional = await ProductsContractV1.at(proxy.address);
   });
@@ -77,23 +129,26 @@ contract('CheckDotInsuranceProtocolContract', async (accounts) => {
   it('getImplementation should be equals ProductsContractV2', async () => {
     const functionalContractV2 = await ProductsContractV2.new();
 
-    const startUTC = `${((new Date()).getTime() / 1000).toFixed(0)}`;
-    const endUTC = `${(((new Date()).getTime() / 1000) + 10).toFixed(0)}`;
+    const currentBlockTimeStamp = ((await web3.eth.getBlock("latest")).timestamp) + 10;
+    const startUTC = `${currentBlockTimeStamp.toFixed(0)}`;
+    const endUTC = `${(currentBlockTimeStamp + 86400).toFixed(0)}`;
 
     await proxy.upgrade(functionalContractV2.address, startUTC, endUTC, { from: owner });
 
-    await new Promise(r => setTimeout(r, 2000));
+    await timeHelper.advanceTime(3600); // add one hour
+    await timeHelper.advanceBlock(); // add one block
     
     await proxy.voteUpgrade(true, { from: owner });
     await proxy.voteUpgrade(true, { from: tester });
 
-    await new Promise(r => setTimeout(r, 15000));
+    await timeHelper.advanceTime(86400); // add one day
+    await timeHelper.advanceBlock(); // add one block
 
-    await proxy.voteUpgradeCounting({ from: accounts[0] });
+    await proxy.voteUpgradeCounting({ from: owner });
     
     const implementation = await proxy.getImplementation();
 
-    assert.equal(implementation, functionalContractV2.address, 'Should be equals');
+    assert.equal(implementation, functionalContractV2.address, `Should be equals to ${functionalContractV2.address}`);
 
     proxyFunctional = await ProductsContractV2.at(proxy.address);
   });

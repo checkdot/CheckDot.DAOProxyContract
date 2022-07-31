@@ -14,6 +14,8 @@ interface IUpgradableProxyDAO {
 
     function getOwner() external view returns (address);
 
+    function getGovernance() external view returns (address);
+
     function upgrade(address _newAddress, uint256 _utcStartVote, uint256 _utcEndVote) external payable;
 
     function voteUpgradeCounting() external payable;

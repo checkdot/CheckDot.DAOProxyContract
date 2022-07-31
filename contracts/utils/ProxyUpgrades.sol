@@ -29,6 +29,8 @@ library ProxyUpgrades {
         Upgrades value;
     }
 
+    event UpgradeCreated(uint256 id);
+
     /////////
     // Upgrades View
     /////////
@@ -97,7 +99,7 @@ library ProxyUpgrades {
     /////////
 
     function add(Upgrades storage upgrades, address _submitedNewFunctionalAddress, uint256 _utcStartVote, uint256 _utcEndVote) internal {
-        unchecked {
+        // unchecked {
             uint256 id = upgrades.counter++;
             
             upgrades.upgrades[id].id = id;
@@ -107,7 +109,9 @@ library ProxyUpgrades {
             upgrades.upgrades[id].totalApproved = 0;
             upgrades.upgrades[id].totalUnapproved = 0;
             upgrades.upgrades[id].isFinished = false;
-        }
+
+            emit UpgradeCreated(id);
+        // }
     }
 
     /////////
