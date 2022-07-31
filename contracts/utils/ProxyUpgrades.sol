@@ -2,12 +2,10 @@
 pragma solidity ^0.8.9;
 
 /**
- * @title Counters
- * @author Matt Condon (@shrugs)
- * @dev Provides counters that can only be incremented, decremented or reset. This can be used e.g. to track the number
- * of elements in a mapping, issuing ERC721 ids, or counting request ids.
- *
- * Include with `using Counters for Counters.Counter;`
+ * @title ProxyUpgrades
+ * @author Jeremy Guyet (@jguyet)
+ * @dev Provides a library allowing the management of updates.
+ * Library usable for proxies.
  */
 library ProxyUpgrades {
 
@@ -25,6 +23,10 @@ library ProxyUpgrades {
         mapping(uint256 => Upgrade) upgrades;
         mapping(uint256 => mapping(address => address)) participators;
         uint256 counter;
+    }
+
+    struct UpgradesSlot {
+        Upgrades value;
     }
 
     /////////
@@ -126,6 +128,15 @@ library ProxyUpgrades {
     function setFinished(Upgrade storage upgrade, bool _finished) internal {
         unchecked {
             upgrade.isFinished = _finished;
+        }
+    }
+
+    /**
+     * @dev Returns an `UpgradesSlot` with member `value` located at `slot`.
+     */
+    function getUpgradesSlot(bytes32 slot) internal pure returns (UpgradesSlot storage r) {
+        assembly {
+            r.slot := slot
         }
     }
 }

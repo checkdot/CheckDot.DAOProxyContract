@@ -1,7 +1,12 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.9;
 
-library StorageSlot {
+/**
+ * @title ProxyAddresses
+ * @author Jeremy Guyet (@jguyet)
+ * @dev Library to manage the storage of addresses for proxies.
+ */
+library ProxyAddresses {
     struct AddressSlot {
         address value;
     }

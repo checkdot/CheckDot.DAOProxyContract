@@ -3,6 +3,11 @@ pragma solidity ^0.8.9;
 
 import "../utils/ProxyUpgrades.sol";
 
+/**
+ * @title IUpgradableProxyDAO
+ * @author Jeremy Guyet (@jguyet)
+ * @dev See {UpgradableProxyDAO}.
+ */
 interface IUpgradableProxyDAO {
 
     function getImplementation() external view returns (address);

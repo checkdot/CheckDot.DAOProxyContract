@@ -97,5 +97,12 @@ contract('CheckDotInsuranceProtocolContract', async (accounts) => {
 
     proxyFunctional = await ProductsContractV2.at(proxy.address);
   });
+
+  it('last upgrade should be finished', async () => {
+    
+    const lastUpgrade = await proxy.getLastUpgrade({ from: owner });
+
+    assert.equal(lastUpgrade.isFinished, true, 'Should be equals');
+  });
   
 });

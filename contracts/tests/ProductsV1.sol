@@ -1,9 +1,13 @@
 pragma solidity ^0.8.9;
 
-import "../utils/ProxyStorage.sol";
-import "../utils/Counters.sol";
+import "./Storage.sol";
 
-contract ProductsV1 is ProxyStorage {
+import "@openzeppelin/contracts/utils/Counters.sol";
+
+/**
+ * ONLY USED ON THE UNIT TESTS
+ */
+contract ProductsV1 is Storage {
     using Counters for Counters.Counter;
 
     bytes32 private constant _ADMIN_SLOT = 0x10d6a54a4754c8869d6886b5f5d7fbfa5b4522237ea5c60d11bc4e7a1ff9390b;

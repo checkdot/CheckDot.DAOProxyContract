@@ -3,6 +3,14 @@ pragma solidity ^0.8.9;
 
 import "./UpgradableProxyDAO.sol";
 
+/**
+ * @title Proxy
+ * @author Jeremy Guyet (@jguyet)
+ * @dev Proxy contract allows the binding of a version by version
+ * implementation which can be updated thanks to the
+ * UpgradableProxyDAO abstraction which allows the proxy a
+ * DAO governance.
+ */
 contract Proxy is UpgradableProxyDAO {
 
     constructor(address _cdtGouvernanceAddress) UpgradableProxyDAO(_cdtGouvernanceAddress) { }
