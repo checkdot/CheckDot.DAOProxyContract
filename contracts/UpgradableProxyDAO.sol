@@ -52,7 +52,6 @@ contract UpgradableProxyDAO {
     constructor(address _cdtGouvernanceAddress) {
         _setOwner(msg.sender);
         _setGovernance(_cdtGouvernanceAddress);
-        _initializeUpgrades();
     }
 
     /**
@@ -94,6 +93,13 @@ contract UpgradableProxyDAO {
         _proxyUpgrades.add(_newAddress, _utcStartVote, _utcEndVote);
     }
 
+    /**
+     * @dev Function to check the result of the vote of the implementation
+     * update.
+     * Only called by the owner and if the vote is favorable the
+     * implementation is changed and a call to the initialize function of
+     * the new implementation will be made.
+     */
     function voteUpgradeCounting() external payable {
         require(_getOwner() == msg.sender, "Proxy: FORBIDDEN");
         ProxyUpgrades.Upgrades storage _proxyUpgrades = ProxyUpgrades.getUpgradesSlot(_UPGRADES_SLOT).value;
@@ -108,6 +114,11 @@ contract UpgradableProxyDAO {
         }
     }
 
+    /**
+     * @dev Function callable by the holder of at least one unit of the
+     * governance token.
+     * A voter can only vote once per update.
+     */
     function voteUpgrade(bool approve) external payable {
         ProxyUpgrades.Upgrades storage _proxyUpgrades = ProxyUpgrades.getUpgradesSlot(_UPGRADES_SLOT).value;
 
@@ -120,10 +131,16 @@ contract UpgradableProxyDAO {
         _proxyUpgrades.current().vote(_proxyUpgrades, msg.sender, approve);
     }
 
+    /**
+     * @dev Returns the array of all upgrades.
+     */
     function getAllUpgrades() external view returns (ProxyUpgrades.Upgrade[] memory) {
         return ProxyUpgrades.getUpgradesSlot(_UPGRADES_SLOT).value.all();
     }
 
+    /**
+     * @dev Returns the last upgrade.
+     */
     function getLastUpgrade() external view returns (ProxyUpgrades.Upgrade memory) {
         return ProxyUpgrades.getUpgradesSlot(_UPGRADES_SLOT).value.getLastUpgrade();
     }
@@ -170,15 +187,20 @@ contract UpgradableProxyDAO {
         ProxyAddresses.getAddressSlot(_GOVERNANCE_SLOT).value = _newGovernance;
     }
 
-    function _initializeUpgrades() private {
-        ProxyUpgrades.getUpgradesSlot(_UPGRADES_SLOT).value.counter = 0;
-    }
-
+    /**
+     * @dev Stores the new implementation address in the implementation slot
+     * and call the internal _afterUpgrade function used for calling functions
+     * on the new implementation just after the set in the same nonce block.
+     */
     function _upgrade(address _newFunctionalAddress) internal {
         _setImplementation(_newFunctionalAddress);
         _afterUpgrade(_newFunctionalAddress);
     }
 
+    /**
+     * @dev internal virtual function implemented in the Proxy contract.
+     * This is called just after all upgrades of the proxy implementation.
+     */
     function _afterUpgrade(address _newFunctionalAddress) internal virtual { }
 
 }
