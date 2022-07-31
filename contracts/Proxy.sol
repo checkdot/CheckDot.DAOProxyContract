@@ -15,16 +15,28 @@ contract Proxy is UpgradableProxyDAO {
 
     constructor(address _cdtGouvernanceAddress) UpgradableProxyDAO(_cdtGouvernanceAddress) { }
 
+    /**
+     * @dev This is the fallback function a fall back function is triggered if someone
+     * sends a function call or a transaction to this contract AND there is no function
+     * that corresponds to the name the callers is trying to execute.
+     * Each call is then passed to the _delegate function which will call the functions
+     * of the functional implementation.
+     */
     fallback() external payable {
         _delegate(_getImplementation());
     }
 
+    /**
+     * @dev This is the receive function is triggered if someone send transaction to
+     * this contract. Each call is then passed to the _delegate function which will
+     * call the functions of the functional implementation.
+     */
     receive() external payable {
         _delegate(_getImplementation());
     }
 
     /**
-     * This is the fallback function a fall back function is triggered if someone
+     * @dev This is the fallback function a fall back function is triggered if someone
      * sends a function call or a transaction to this contract AND there is no function
      * that corresponds to the name the callers is trying to execute 
      * e.g. if someone tries to call HelloWorld() to this contract, which doesn't exist
@@ -57,7 +69,7 @@ contract Proxy is UpgradableProxyDAO {
     }
 
     /**
-     * This function is called once the implementation is updated.
+     * @dev This function is called once the implementation is updated.
      * It calls the initialize function of the proxy contract,
      * this allows an update of some variables if necessary
      * when updating the proxy code again.
