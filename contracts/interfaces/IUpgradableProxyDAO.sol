@@ -1,6 +1,7 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.9;
 
+import "./IOwnedProxy.sol";
 import "../utils/ProxyUpgrades.sol";
 
 /**
@@ -8,13 +9,15 @@ import "../utils/ProxyUpgrades.sol";
  * @author Jeremy Guyet (@jguyet)
  * @dev See {UpgradableProxyDAO}.
  */
-interface IUpgradableProxyDAO {
+interface IUpgradableProxyDAO is IOwnedProxy {
 
     function getImplementation() external view returns (address);
 
     function getOwner() external view returns (address);
 
     function getGovernance() external view returns (address);
+
+    function transferOwnership(address _newOwner) external payable;
 
     function upgrade(address _newAddress, uint256 _utcStartVote, uint256 _utcEndVote) external payable;
 

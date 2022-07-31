@@ -1,9 +1,10 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.9;
 
 import "./utils/ProxyUpgrades.sol";
 import "./utils/ProxyAddresses.sol";
 import "./interfaces/IERC20.sol";
+import "./interfaces/IUpgradableProxyDAO.sol";
 
 /**
  * @title UpgradableProxyDAO
@@ -20,7 +21,7 @@ import "./interfaces/IERC20.sol";
  * For more information about the security of these locations please refer
  * to the discussions around the EIP-1967 standard we have been inspired by.
  */
-contract UpgradableProxyDAO {
+contract UpgradableProxyDAO is IUpgradableProxyDAO {
     using ProxyAddresses for ProxyAddresses.AddressSlot;
     using ProxyUpgrades for ProxyUpgrades.Upgrades;
     using ProxyUpgrades for ProxyUpgrades.Upgrade;
@@ -73,6 +74,14 @@ contract UpgradableProxyDAO {
      */
     function getGovernance() external view returns (address) {
         return _getGovernance();
+    }
+
+    /**
+     * @dev Transfer the ownership onlyOwner can call this function.
+     */
+    function transferOwnership(address _newOwner) external payable {
+        require(_getOwner() == msg.sender, "Proxy: FORBIDDEN");
+        _setOwner(_newOwner);
     }
 
     /**

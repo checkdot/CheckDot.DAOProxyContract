@@ -37,14 +37,4 @@ contract ProductsV2 is Storage {
     function getCount() external view returns (uint256) { // new function
         return _counterStorage["productCount"].current();
     }
-
-    function getOwner() public view returns (address) {
-        return _owner();
-    }
-
-    function _owner() internal view returns (address impl) {
-        assembly {
-            impl := sload(0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103)
-        }
-    }
 }
