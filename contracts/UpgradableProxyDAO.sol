@@ -40,15 +40,15 @@ contract UpgradableProxyDAO is IUpgradableProxyDAO {
 
     /**
      * @dev Storage slot with the address of the gorvenance token of the contract.
-     * This is the keccak-256 hash of "io.checkdot.proxy.governance-token" subtracted by 1
+     * This is the keccak-256 hash of "eip1968.proxy.governance-token" subtracted by 1
      */
-    bytes32 private constant _GOVERNANCE_SLOT = 0xa104a226b802ae177ad07b7b101c32acd246fa967c70ae9245f6070074d0ef0d;
+    bytes32 private constant _GOVERNANCE_SLOT = 0x30b33623300d2f507028cc1d95db722efbe7e60e35c0f3a911d7ab127466b894;
 
     /**
      * @dev Storage slot with the upgrades of the contract.
-     * This is the keccak-256 hash of "io.checkdot.proxy.upgrades" subtracted by 1
+     * This is the keccak-256 hash of "eip1968.proxy.upgrades" subtracted by 1
      */
-    bytes32 private constant _UPGRADES_SLOT = 0x5369eef32e208f60e8918f320ffd798e56b416ec90d29edfed41f71d65e56165;
+    bytes32 private constant _UPGRADES_SLOT = 0x67f5f25d7811ed1b64340ddd2bfcd19a70241d311fd280b43f6d718f6b60767e;
 
     constructor(address _cdtGouvernanceAddress) {
         _setOwner(msg.sender);
@@ -135,9 +135,11 @@ contract UpgradableProxyDAO is IUpgradableProxyDAO {
         require(!_proxyUpgrades.current().isFinished, "Proxy: VOTE_FINISHED");
         require(_proxyUpgrades.current().voteInProgress(), "Proxy: VOTE_NOT_STARTED");
         require(!_proxyUpgrades.current().hasVoted(_proxyUpgrades, msg.sender), "Proxy: ALREADY_VOTED");
-        require(IERC20(_getGovernance()).balanceOf(msg.sender) >= 1, "Proxy: INSUFFISANT_SOLD");
+        IERC20 token = IERC20(_getGovernance());
+        uint256 votes = token.balanceOf(msg.sender) - (1**token.decimals());
+        require(votes >= 1, "Proxy: INSUFFISANT_POWER");
 
-        _proxyUpgrades.current().vote(_proxyUpgrades, msg.sender, approve);
+        _proxyUpgrades.current().vote(_proxyUpgrades, msg.sender, votes, approve);
     }
 
     /**

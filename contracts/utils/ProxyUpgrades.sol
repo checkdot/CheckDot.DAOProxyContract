@@ -114,12 +114,12 @@ library ProxyUpgrades {
     // Upgrade Functions
     /////////
 
-    function vote(Upgrade storage upgrade, Upgrades storage upgrades, address _from, bool _approved) internal {
+    function vote(Upgrade storage upgrade, Upgrades storage upgrades, address _from, uint256 _votes, bool _approved) internal {
         unchecked {
             if (_approved) {
-                upgrade.totalApproved++;
+                upgrade.totalApproved += _votes;
             } else {
-                upgrade.totalUnapproved++;
+                upgrade.totalUnapproved += _votes;
             }
             upgrades.participators[upgrade.id][_from] = _from;
         }
