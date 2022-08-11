@@ -1,18 +1,19 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.9;
 
-import "./UpgradableProxy.sol";
+import "./UpgradableProxyDAO.sol";
 
 /**
- * @title Proxy
+ * @title ProxyDAO
  * @author Jeremy Guyet (@jguyet)
- * @dev Proxy contract allows the binding of a version by version
+ * @dev ProxyDAO contract allows the binding of a version by version
  * implementation which can be updated thanks to the
- * UpgradableProxy abstraction.
+ * UpgradableProxyDAO abstraction which allows the proxy a
+ * DAO governance.
  */
-contract Proxy is UpgradableProxy {
+contract ProxyDAO is UpgradableProxyDAO {
 
-    constructor() UpgradableProxy() {}
+    constructor(address _cdtGouvernanceAddress) UpgradableProxyDAO(_cdtGouvernanceAddress) { }
 
     /**
      * @dev This is the fallback function a fall back function is triggered if someone

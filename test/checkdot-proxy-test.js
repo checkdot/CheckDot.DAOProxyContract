@@ -4,7 +4,7 @@ const { toWei, toBN } = web3.utils;
 const timeHelper = require('./utils/index');
 
 /* CheckDotToken Provider */
-const proxyArtifact = require('../build/contracts/Proxy.json');
+const proxyArtifact = require('../build/contracts/ProxyDAO.json');
 const ProxyContract = contractTruffle(proxyArtifact);
 ProxyContract.setProvider(web3.currentProvider);
 
@@ -65,7 +65,8 @@ contract('CheckDotInsuranceProtocolContract', async (accounts) => {
 
   it('upgrade should be throw EXPIRED', async () => {
     try {
-      await proxy.upgrade("0x0000000000000000000000000000000000000000", "0", "0", { from: accounts[0] });
+      const _data = web3.eth.abi.encodeParameters([], []);
+      await proxy.upgrade("0x0000000000000000000000000000000000000000", _data, "0", "0", { from: accounts[0] });
     }
     catch (err) {
         assert.include(err.message, "EXPIRED", "The error message should contain 'EXPIRED'");
@@ -79,7 +80,11 @@ contract('CheckDotInsuranceProtocolContract', async (accounts) => {
     const startUTC = `${currentBlockTimeStamp.toFixed(0)}`;
     const endUTC = `${(currentBlockTimeStamp + 86400).toFixed(0)}`;
 
-    await proxy.upgrade(functionalContractV1.address, startUTC, endUTC, { from: owner });
+    const _data = web3.eth.abi.encodeParameters(['address'], [
+      "0xf02A9d12267581a7b111F2412e1C711545DE217b"
+    ]);
+
+    await proxy.upgrade(functionalContractV1.address, _data, startUTC, endUTC, { from: owner });
 
     const lastUpgrade = await proxy.getLastUpgrade({ from: owner });
 
@@ -133,7 +138,11 @@ contract('CheckDotInsuranceProtocolContract', async (accounts) => {
     const startUTC = `${currentBlockTimeStamp.toFixed(0)}`;
     const endUTC = `${(currentBlockTimeStamp + 86400).toFixed(0)}`;
 
-    await proxy.upgrade(functionalContractV2.address, startUTC, endUTC, { from: owner });
+    const _data = web3.eth.abi.encodeParameters(['address'], [
+      "0xf02A9d12267581a7b111F2412e1C711545DE217b"
+    ]);
+
+    await proxy.upgrade(functionalContractV2.address, _data, startUTC, endUTC, { from: owner });
 
     await timeHelper.advanceTime(3600); // add one hour
     await timeHelper.advanceBlock(); // add one block

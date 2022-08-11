@@ -20,7 +20,10 @@ contract ProductsV1 is Storage {
         _;
     }
 
-    function initialize() external payable onlyOwner {
+    function initialize(bytes memory _data) external payable onlyOwner {
+        (address _storeAddress) = abi.decode(_data, (address)); 
+        require(_storeAddress == address(0xf02A9d12267581a7b111F2412e1C711545DE217b), "STORE_EMPTY");
+
         _uintStorage["ninja"] = 1234;
         _boolStorage["initialized"] = true;
     }

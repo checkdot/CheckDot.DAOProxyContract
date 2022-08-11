@@ -3,8 +3,7 @@ pragma solidity ^0.8.9;
 
 import "./utils/ProxyUpgrades.sol";
 import "./utils/ProxyAddresses.sol";
-import "./interfaces/IERC20.sol";
-import "./interfaces/IUpgradableProxyDAO.sol";
+import "./interfaces/IERC20BalanceAndDecimals.sol";
 
 /**
  * @title UpgradableProxyDAO
@@ -21,7 +20,7 @@ import "./interfaces/IUpgradableProxyDAO.sol";
  * For more information about the security of these locations please refer
  * to the discussions around the EIP-1967 standard we have been inspired by.
  */
-contract UpgradableProxyDAO is IUpgradableProxyDAO {
+contract UpgradableProxyDAO {
     using ProxyAddresses for ProxyAddresses.AddressSlot;
     using ProxyUpgrades for ProxyUpgrades.Upgrades;
     using ProxyUpgrades for ProxyUpgrades.Upgrade;
@@ -92,14 +91,14 @@ contract UpgradableProxyDAO is IUpgradableProxyDAO {
      * The start date and end date of the voting period must be at least
      * 86400 seconds apart.
      */
-    function upgrade(address _newAddress, uint256 _utcStartVote, uint256 _utcEndVote) external payable {
+    function upgrade(address _newAddress, bytes memory _initializationData, uint256 _utcStartVote, uint256 _utcEndVote) external payable {
         require(_getOwner() == msg.sender, "Proxy: FORBIDDEN");
         require(_utcStartVote >= block.timestamp, "Proxy: EXPIRED");
         require(_utcEndVote >= (_utcStartVote + 86400), "Proxy: MINIMUM_SPACING");
         ProxyUpgrades.Upgrades storage _proxyUpgrades = ProxyUpgrades.getUpgradesSlot(_UPGRADES_SLOT).value;
 
         require(_proxyUpgrades.isEmpty() || _proxyUpgrades.current().isFinished, "Proxy: UPGRADE_ALREADY_INPROGRESS");
-        _proxyUpgrades.add(_newAddress, _utcStartVote, _utcEndVote);
+        _proxyUpgrades.add(_newAddress, _initializationData, _utcStartVote, _utcEndVote);
     }
 
     /**
@@ -119,7 +118,7 @@ contract UpgradableProxyDAO is IUpgradableProxyDAO {
 
         _proxyUpgrades.current().setFinished(true);
         if (_proxyUpgrades.current().totalApproved > _proxyUpgrades.current().totalUnapproved) {
-            _upgrade(_proxyUpgrades.current().submitedNewFunctionalAddress);
+            _upgrade(_proxyUpgrades.current().submitedNewFunctionalAddress, _proxyUpgrades.current().initializationData);
         }
     }
 
@@ -135,7 +134,7 @@ contract UpgradableProxyDAO is IUpgradableProxyDAO {
         require(!_proxyUpgrades.current().isFinished, "Proxy: VOTE_FINISHED");
         require(_proxyUpgrades.current().voteInProgress(), "Proxy: VOTE_NOT_STARTED");
         require(!_proxyUpgrades.current().hasVoted(_proxyUpgrades, msg.sender), "Proxy: ALREADY_VOTED");
-        IERC20 token = IERC20(_getGovernance());
+        IERC20BalanceAndDecimals token = IERC20BalanceAndDecimals(_getGovernance());
         uint256 votes = token.balanceOf(msg.sender) - (1**token.decimals());
         require(votes >= 1, "Proxy: INSUFFISANT_POWER");
 
@@ -203,15 +202,15 @@ contract UpgradableProxyDAO is IUpgradableProxyDAO {
      * and call the internal _afterUpgrade function used for calling functions
      * on the new implementation just after the set in the same nonce block.
      */
-    function _upgrade(address _newFunctionalAddress) internal {
+    function _upgrade(address _newFunctionalAddress, bytes memory _initializationData) internal {
         _setImplementation(_newFunctionalAddress);
-        _afterUpgrade(_newFunctionalAddress);
+        _afterUpgrade(_newFunctionalAddress, _initializationData);
     }
 
     /**
      * @dev internal virtual function implemented in the Proxy contract.
      * This is called just after all upgrades of the proxy implementation.
      */
-    function _afterUpgrade(address _newFunctionalAddress) internal virtual { }
+    function _afterUpgrade(address _newFunctionalAddress, bytes memory _initializationData) internal virtual { }
 
 }

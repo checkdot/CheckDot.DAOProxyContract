@@ -14,7 +14,7 @@ contract ProductsV2 is Storage {
 
     constructor() {}
 
-    function initialize() external payable {
+    function initialize(bytes memory _data) external payable {
         // new empty content
         // ninja = 1236;
         products[_counterStorage["productCount"].current()] = msg.sender;

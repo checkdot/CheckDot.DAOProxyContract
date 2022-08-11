@@ -19,7 +19,7 @@ interface IUpgradableProxyDAO is IOwnedProxy {
 
     function transferOwnership(address _newOwner) external payable;
 
-    function upgrade(address _newAddress, uint256 _utcStartVote, uint256 _utcEndVote) external payable;
+    function upgrade(address _newAddress, address _newStoreAddress, uint256 _utcStartVote, uint256 _utcEndVote) external payable;
 
     function voteUpgradeCounting() external payable;
 

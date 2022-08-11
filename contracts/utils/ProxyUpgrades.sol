@@ -12,6 +12,7 @@ library ProxyUpgrades {
     struct Upgrade {
         uint256 id;
         address submitedNewFunctionalAddress;
+        bytes   initializationData;
         uint256 utcStartVote;
         uint256 utcEndVote;
         uint256 totalApproved;
@@ -51,6 +52,7 @@ library ProxyUpgrades {
 
             results[index].id = upgrade.id;
             results[index].submitedNewFunctionalAddress = upgrade.submitedNewFunctionalAddress;
+            results[index].initializationData = upgrade.initializationData;
             results[index].utcStartVote = upgrade.utcStartVote;
             results[index].utcEndVote = upgrade.utcEndVote;
             results[index].totalApproved = upgrade.totalApproved;
@@ -66,6 +68,7 @@ library ProxyUpgrades {
                     
         result.id = upgrade.id;
         result.submitedNewFunctionalAddress = upgrade.submitedNewFunctionalAddress;
+        result.initializationData = upgrade.initializationData;
         result.utcStartVote = upgrade.utcStartVote;
         result.utcEndVote = upgrade.utcEndVote;
         result.totalApproved = upgrade.totalApproved;
@@ -96,12 +99,13 @@ library ProxyUpgrades {
     // Upgrades Functions
     /////////
 
-    function add(Upgrades storage upgrades, address _submitedNewFunctionalAddress, uint256 _utcStartVote, uint256 _utcEndVote) internal {
+    function add(Upgrades storage upgrades, address _submitedNewFunctionalAddress, bytes memory _initializationData, uint256 _utcStartVote, uint256 _utcEndVote) internal {
         unchecked {
             uint256 id = upgrades.counter++;
             
             upgrades.upgrades[id].id = id;
             upgrades.upgrades[id].submitedNewFunctionalAddress = _submitedNewFunctionalAddress;
+            upgrades.upgrades[id].initializationData = _initializationData;
             upgrades.upgrades[id].utcStartVote = _utcStartVote;
             upgrades.upgrades[id].utcEndVote = _utcEndVote;
             upgrades.upgrades[id].totalApproved = 0;
