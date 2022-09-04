@@ -3,6 +3,8 @@ pragma solidity ^0.8.9;
 
 import "./utils/ProxyUpgrades.sol";
 import "./utils/ProxyAddresses.sol";
+import "./utils/ProxyModes.sol";
+import "./utils/ProxyVoteDurations.sol";
 import "./interfaces/IERC20BalanceAndDecimals.sol";
 
 /**
@@ -22,6 +24,8 @@ import "./interfaces/IERC20BalanceAndDecimals.sol";
  */
 contract UpgradableProxyDAO {
     using ProxyAddresses for ProxyAddresses.AddressSlot;
+    using ProxyModes for ProxyModes.ModeSlot;
+    using ProxyVoteDurations for ProxyVoteDurations.VoteDurationSlot;
     using ProxyUpgrades for ProxyUpgrades.Upgrades;
     using ProxyUpgrades for ProxyUpgrades.Upgrade;
 
@@ -39,19 +43,33 @@ contract UpgradableProxyDAO {
 
     /**
      * @dev Storage slot with the address of the gorvenance token of the contract.
-     * This is the keccak-256 hash of "eip1968.proxy.governance-token" subtracted by 1
+     * This is the keccak-256 hash of "checkdot.io.proxy.governance-token" subtracted by 1
      */
-    bytes32 private constant _GOVERNANCE_SLOT = 0x30b33623300d2f507028cc1d95db722efbe7e60e35c0f3a911d7ab127466b894;
+    bytes32 private constant _GOVERNANCE_SLOT = 0x6dad0f23c7599fe058f6d945cb006fc2efdeec546a7309619015b2fe6aafe749;
 
     /**
      * @dev Storage slot with the upgrades of the contract.
-     * This is the keccak-256 hash of "eip1968.proxy.upgrades" subtracted by 1
+     * This is the keccak-256 hash of "checkdot.io.proxy.upgrades" subtracted by 1
      */
-    bytes32 private constant _UPGRADES_SLOT = 0x67f5f25d7811ed1b64340ddd2bfcd19a70241d311fd280b43f6d718f6b60767e;
+    bytes32 private constant _UPGRADES_SLOT = 0x6190170739ac7613eca8f8497702a38493865185ee4d45c91d18b0973eef39a8;
+
+    /**
+     * @dev Storage slot with the upgrades of the contract.
+     * This is the keccak-256 hash of "checkdot.io.proxy.vote.duration" subtracted by 1
+     */
+    bytes32 private constant _VOTE_DURATION_SLOT = 0x3dbc3e8463648688016ac4674e4344b3e465f24bb2b8d250193e1371f4fe1b31;
+
+    /**
+     * @dev Storage slot with the upgrades of the contract.
+     * This is the keccak-256 hash of "checkdot.io.proxy.production" subtracted by 1
+     */
+    bytes32 private constant _IS_PRODUCTION_SLOT = 0xdb4027e5ac6ab1244eeafe40a76baa5f57763046d91d31b60a29e63885da6ed3;
 
     constructor(address _cdtGouvernanceAddress) {
         _setOwner(msg.sender);
         _setGovernance(_cdtGouvernanceAddress);
+        _setInProduction(false);
+        _setVoteDuration(86400); // 1 day
     }
 
     /**
@@ -76,6 +94,36 @@ contract UpgradableProxyDAO {
     }
 
     /**
+     * @dev Returns the current vote duration.
+     */
+    function getVoteDuration() external view returns (uint256) {
+        return _getVoteDuration();
+    }
+
+    /**
+     * @dev Returns if the proxy is in production. (Irreversible)
+     */
+    function isInProduction() external view returns (bool) {
+        return _isInProduction();
+    }
+
+    /**
+     * @dev Enable the production Mode when is in production all upgrades need DAO vote.
+     */
+    function setInProduction() external payable {
+        require(_getOwner() == msg.sender, "Proxy: FORBIDDEN");
+        _setInProduction(true);
+    }
+
+    /**
+     * @dev Set the Vote Duration minimum of 1 day.
+     */
+    function setVoteDuration(uint256 _newVoteDuration) external payable {
+        require(_getOwner() == msg.sender, "Proxy: FORBIDDEN");
+        _setVoteDuration(_newVoteDuration);
+    }
+
+    /**
      * @dev Transfer the ownership onlyOwner can call this function.
      */
     function transferOwnership(address _newOwner) external payable {
@@ -91,14 +139,16 @@ contract UpgradableProxyDAO {
      * The start date and end date of the voting period must be at least
      * 86400 seconds apart.
      */
-    function upgrade(address _newAddress, bytes memory _initializationData, uint256 _utcStartVote, uint256 _utcEndVote) external payable {
+    function upgrade(address _newAddress, bytes memory _initializationData) external payable {
         require(_getOwner() == msg.sender, "Proxy: FORBIDDEN");
-        require(_utcStartVote >= block.timestamp, "Proxy: EXPIRED");
-        require(_utcEndVote >= (_utcStartVote + 86400), "Proxy: MINIMUM_SPACING");
-        ProxyUpgrades.Upgrades storage _proxyUpgrades = ProxyUpgrades.getUpgradesSlot(_UPGRADES_SLOT).value;
+        if (_isInProduction() == false) {
+            _upgrade(_newAddress, _initializationData);
+        } else {
+            ProxyUpgrades.Upgrades storage _proxyUpgrades = ProxyUpgrades.getUpgradesSlot(_UPGRADES_SLOT).value;
 
-        require(_proxyUpgrades.isEmpty() || _proxyUpgrades.current().isFinished, "Proxy: UPGRADE_ALREADY_INPROGRESS");
-        _proxyUpgrades.add(_newAddress, _initializationData, _utcStartVote, _utcEndVote);
+            require(_proxyUpgrades.isEmpty() || _proxyUpgrades.current().isFinished, "Proxy: UPGRADE_ALREADY_INPROGRESS");
+            _proxyUpgrades.add(_newAddress, _initializationData, block.timestamp, block.timestamp + _getVoteDuration());
+        }
     }
 
     /**
@@ -195,6 +245,35 @@ contract UpgradableProxyDAO {
      */
     function _setGovernance(address _newGovernance) private {
         ProxyAddresses.getAddressSlot(_GOVERNANCE_SLOT).value = _newGovernance;
+    }
+
+    /**
+     * @dev Returns boolean DAO is enabled.
+     */
+    function _isInProduction() internal view returns (bool) {
+        return ProxyModes.getModeSlot(_IS_PRODUCTION_SLOT).value;
+    }
+
+    /**
+     * @dev Application of the production mode, irreversible change.
+     */
+    function _setInProduction(bool enabled) private {
+        ProxyModes.getModeSlot(_IS_PRODUCTION_SLOT).value = enabled;
+    }
+
+    /**
+     * @dev Returns the vote duration.
+     */
+    function _getVoteDuration() internal view returns (uint256) {
+        return ProxyVoteDurations.getVoteDurationSlot(_VOTE_DURATION_SLOT).value;
+    }
+
+    /**
+     * @dev Stores the vote duration
+     */
+    function _setVoteDuration(uint256 _newVoteDuration) private {
+        require(_newVoteDuration >= 86400, "Proxy: Minimum of one day");
+        ProxyVoteDurations.getVoteDurationSlot(_VOTE_DURATION_SLOT).value = _newVoteDuration;
     }
 
     /**

@@ -13,6 +13,8 @@ contract ProductsV1 is Storage {
 
     mapping(uint256 => address) public products;
 
+    address private storeAddress;
+
     constructor() {}
 
     modifier onlyOwner {
@@ -24,6 +26,7 @@ contract ProductsV1 is Storage {
         (address _storeAddress) = abi.decode(_data, (address)); 
         require(_storeAddress == address(0xf02A9d12267581a7b111F2412e1C711545DE217b), "STORE_EMPTY");
 
+        storeAddress = _storeAddress;
         _uintStorage["ninja"] = 1234;
         _boolStorage["initialized"] = true;
     }
@@ -47,5 +50,9 @@ contract ProductsV1 is Storage {
 
     function getCount() public view returns (uint256) { // new function
         return _counterStorage["productCount"].current();
+    }
+
+    function getStoreAddress() public view returns (address) {
+        return storeAddress;
     }
 }

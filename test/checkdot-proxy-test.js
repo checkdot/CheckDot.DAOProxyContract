@@ -63,34 +63,28 @@ contract('CheckDotInsuranceProtocolContract', async (accounts) => {
     assert.equal(addr, "0x79deC2de93f9B16DD12Bc6277b33b0c81f4D74C7", `Should be ${owner}`);
   });
 
-  it('upgrade should be throw EXPIRED', async () => {
-    try {
-      const _data = web3.eth.abi.encodeParameters([], []);
-      await proxy.upgrade("0x0000000000000000000000000000000000000000", _data, "0", "0", { from: accounts[0] });
-    }
-    catch (err) {
-        assert.include(err.message, "EXPIRED", "The error message should contain 'EXPIRED'");
-    }
+  it('setInProduction should be enabled', async () => {
+    assert.equal(await proxy.isInProduction(), false, `Should be false`);
+
+    await proxy.setInProduction({ from: owner });
+
+    assert.equal(await proxy.isInProduction(), true, `Should be true`);
   });
 
   it('getImplementation should be equals ProductsContractV1', async () => {
     const functionalContractV1 = await ProductsContractV1.new();
     
     const currentBlockTimeStamp = ((await web3.eth.getBlock("latest")).timestamp) + 10;
-    const startUTC = `${currentBlockTimeStamp.toFixed(0)}`;
-    const endUTC = `${(currentBlockTimeStamp + 86400).toFixed(0)}`;
 
     const _data = web3.eth.abi.encodeParameters(['address'], [
       "0xf02A9d12267581a7b111F2412e1C711545DE217b"
     ]);
 
-    await proxy.upgrade(functionalContractV1.address, _data, startUTC, endUTC, { from: owner });
+    await proxy.upgrade(functionalContractV1.address, _data, { from: owner });
 
     const lastUpgrade = await proxy.getLastUpgrade({ from: owner });
 
     assert.equal(lastUpgrade.submitedNewFunctionalAddress, functionalContractV1.address, `submitedNewFunctionalAddress should be equals to ${functionalContractV1.address}`);
-    assert.equal(lastUpgrade.utcStartVote, startUTC, `utcStartVote should be equals to ${startUTC}`);
-    assert.equal(lastUpgrade.utcEndVote, endUTC, `utcEndVote should be equals to ${endUTC}`);
     assert.equal(lastUpgrade.totalApproved, 0, `totalApproved should be equals to 0`);
     assert.equal(lastUpgrade.totalUnapproved, 0, `totalUnapproved should be equals to 0`);
     assert.equal(lastUpgrade.isFinished, false, `isFinished should be equals to false`);
@@ -118,6 +112,11 @@ contract('CheckDotInsuranceProtocolContract', async (accounts) => {
     assert.equal(initialized, true, 'Should be true');
   });
 
+  it('Verify store address', async () => {
+    const storeAddress = await proxyFunctional.getStoreAddress({ from: owner });
+    assert.equal(storeAddress, "0xf02A9d12267581a7b111F2412e1C711545DE217b", 'Should be 0xf02A9d12267581a7b111F2412e1C711545DE217b');
+  });
+
   it('Add one product and check if exists', async () => {
     let addressOfTest = owner;
     await proxyFunctional.testAddProduct(addressOfTest, { from: owner });
@@ -135,14 +134,12 @@ contract('CheckDotInsuranceProtocolContract', async (accounts) => {
     const functionalContractV2 = await ProductsContractV2.new();
 
     const currentBlockTimeStamp = ((await web3.eth.getBlock("latest")).timestamp) + 10;
-    const startUTC = `${currentBlockTimeStamp.toFixed(0)}`;
-    const endUTC = `${(currentBlockTimeStamp + 86400).toFixed(0)}`;
 
     const _data = web3.eth.abi.encodeParameters(['address'], [
       "0xf02A9d12267581a7b111F2412e1C711545DE217b"
     ]);
 
-    await proxy.upgrade(functionalContractV2.address, _data, startUTC, endUTC, { from: owner });
+    await proxy.upgrade(functionalContractV2.address, _data, { from: owner });
 
     await timeHelper.advanceTime(3600); // add one hour
     await timeHelper.advanceBlock(); // add one block
