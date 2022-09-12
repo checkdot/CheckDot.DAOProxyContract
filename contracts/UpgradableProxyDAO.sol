@@ -185,7 +185,7 @@ contract UpgradableProxyDAO {
         require(_proxyUpgrades.current().voteInProgress(), "Proxy: VOTE_NOT_STARTED");
         require(!_proxyUpgrades.current().hasVoted(_proxyUpgrades, msg.sender), "Proxy: ALREADY_VOTED");
         IERC20BalanceAndDecimals token = IERC20BalanceAndDecimals(_getGovernance());
-        uint256 votes = token.balanceOf(msg.sender) - (1**token.decimals());
+        uint256 votes = token.balanceOf(msg.sender) / (10 ** token.decimals());
         require(votes >= 1, "Proxy: INSUFFISANT_POWER");
 
         _proxyUpgrades.current().vote(_proxyUpgrades, msg.sender, votes, approve);
