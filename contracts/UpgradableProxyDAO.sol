@@ -3,7 +3,7 @@ pragma solidity ^0.8.9;
 
 import "./utils/ProxyUpgrades.sol";
 import "./utils/ProxyAddresses.sol";
-import "./utils/ProxyModes.sol";
+import "./utils/ProxyBool.sol";
 import "./utils/ProxyVoteDurations.sol";
 import "./interfaces/IERC20BalanceAndDecimals.sol";
 
@@ -24,7 +24,7 @@ import "./interfaces/IERC20BalanceAndDecimals.sol";
  */
 contract UpgradableProxyDAO {
     using ProxyAddresses for ProxyAddresses.AddressSlot;
-    using ProxyModes for ProxyModes.ModeSlot;
+    using ProxyBool for ProxyBool.BoolSlot;
     using ProxyVoteDurations for ProxyVoteDurations.VoteDurationSlot;
     using ProxyUpgrades for ProxyUpgrades.Upgrades;
     using ProxyUpgrades for ProxyUpgrades.Upgrade;
@@ -65,11 +65,18 @@ contract UpgradableProxyDAO {
      */
     bytes32 private constant _IS_PRODUCTION_SLOT = 0xdb4027e5ac6ab1244eeafe40a76baa5f57763046d91d31b60a29e63885da6ed3;
 
+    /**
+     * @dev Storage slot with the graal mode of the contract.
+     * This is the keccak-256 hash of "checkdot.io.proxy.graal" subtracted by 1
+     */
+    bytes32 private constant _THE_GRAAL_SLOT = 0xc11b5cd5592b4c028201fe20d869d004ea2f18eecb6daa132a73e7a1039a3d7c;
+
     constructor(address _cdtGouvernanceAddress) {
         _setOwner(msg.sender);
         _setGovernance(_cdtGouvernanceAddress);
         _setInProduction(false);
         _setVoteDuration(86400); // 1 day
+        _setTheGraal(false);
     }
 
     /**
@@ -116,6 +123,15 @@ contract UpgradableProxyDAO {
     }
 
     /**
+     * @dev Enable the Full Decentralized Mode when is in production.
+     */
+    function setTheGraal() external payable {
+        require(_getOwner() == msg.sender, "Proxy: FORBIDDEN");
+        require(_isInProduction() == true, "Proxy: FORBIDDEN_ONLY_IN_PROD");
+        _setTheGraal(true);
+    }
+
+    /**
      * @dev Set the Vote Duration minimum of 1 day.
      */
     function setVoteDuration(uint256 _newVoteDuration) external payable {
@@ -141,6 +157,7 @@ contract UpgradableProxyDAO {
      */
     function upgrade(address _newAddress, bytes memory _initializationData) external payable {
         require(_getOwner() == msg.sender, "Proxy: FORBIDDEN");
+        require(_doHaveTheGraal() == false, "Proxy: THE_GRAAL");
         if (_isInProduction() == false) {
             _upgrade(_newAddress, _initializationData);
         } else {
@@ -160,6 +177,7 @@ contract UpgradableProxyDAO {
      */
     function voteUpgradeCounting() external payable {
         require(_getOwner() == msg.sender, "Proxy: FORBIDDEN");
+        require(_doHaveTheGraal() == false, "Proxy: THE_GRAAL");
         ProxyUpgrades.Upgrades storage _proxyUpgrades = ProxyUpgrades.getUpgradesSlot(_UPGRADES_SLOT).value;
 
         require(!_proxyUpgrades.isEmpty(), "Proxy: EMPTY");
@@ -251,14 +269,28 @@ contract UpgradableProxyDAO {
      * @dev Returns boolean DAO is enabled.
      */
     function _isInProduction() internal view returns (bool) {
-        return ProxyModes.getModeSlot(_IS_PRODUCTION_SLOT).value;
+        return ProxyBool.getBoolSlot(_IS_PRODUCTION_SLOT).value;
     }
 
     /**
      * @dev Application of the production mode, irreversible change.
      */
     function _setInProduction(bool enabled) private {
-        ProxyModes.getModeSlot(_IS_PRODUCTION_SLOT).value = enabled;
+        ProxyBool.getBoolSlot(_IS_PRODUCTION_SLOT).value = enabled;
+    }
+
+    /**
+     * @dev Returns boolean Full decentralization is enabled.
+     */
+    function _doHaveTheGraal() internal view returns (bool) {
+        return ProxyBool.getBoolSlot(_THE_GRAAL_SLOT).value;
+    }
+
+    /**
+     * @dev Application of the production Full decentralization, irreversible change.
+     */
+    function _setTheGraal(bool enabled) private {
+        ProxyBool.getBoolSlot(_THE_GRAAL_SLOT).value = enabled;
     }
 
     /**
