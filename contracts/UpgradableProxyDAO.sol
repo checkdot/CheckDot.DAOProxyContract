@@ -123,6 +123,13 @@ contract UpgradableProxyDAO {
     }
 
     /**
+     * @dev Returns if the protocol do have the graal. (Irreversible)
+     */
+    function doHaveTheGraal() external view returns (bool) {
+        return _doHaveTheGraal();
+    }
+
+    /**
      * @dev Enable the Full Decentralized Mode when is in production.
      */
     function setTheGraal() external payable {
